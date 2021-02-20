@@ -28,6 +28,8 @@
 
 	var/list/dent_decals
 
+	var/wall_integrity //defaults to max_integrity
+	var/max_integrity = 500
 
 /turf/closed/wall/Initialize(mapload)
 	. = ..()
@@ -44,7 +46,24 @@
 			underlay_appearance.icon_state = fixed_underlay["icon_state"]
 		fixed_underlay = string_assoc_list(fixed_underlay)
 		underlays += underlay_appearance
+	if(wall_integrity == null)
+		wall_integrity = max_integrity
 
+/turf/closed/wall/proc/take_damage(damage_amount)
+	if(QDELETED(src))
+		stack_trace("[src] taking damage after deletion")
+		return
+	if(wall_integrity <= 0)
+		return
+	if(damage_amount < DAMAGE_PRECISION)
+		return
+
+	add_dent(WALL_DENT_HIT)
+	wall_integrity = max(wall_integrity - damage_amount, 0)
+
+	if(wall_integrity <= 0)
+		playsound(src, 'sound/effects/meteorimpact.ogg', 100, TRUE)
+		dismantle_wall()
 
 /turf/closed/wall/Destroy()
 	if(is_station_level(z))
@@ -110,10 +129,7 @@
 
 
 /turf/closed/wall/blob_act(obj/structure/blob/B)
-	if(prob(50))
-		dismantle_wall()
-	else
-		add_dent(WALL_DENT_HIT)
+	take_damage(max_integrity/2)
 
 /turf/closed/wall/attack_paw(mob/living/user, list/modifiers)
 	user.changeNext_move(CLICK_CD_MELEE)
@@ -125,7 +141,7 @@
 	user.do_attack_animation(src)
 	if((user.environment_smash & ENVIRONMENT_SMASH_WALLS) || (user.environment_smash & ENVIRONMENT_SMASH_RWALLS))
 		playsound(src, 'sound/effects/meteorimpact.ogg', 100, TRUE)
-		dismantle_wall(1)
+		take_damage(max_integrity)
 		return
 
 /turf/closed/wall/attack_hulk(mob/living/carbon/user)
@@ -135,18 +151,15 @@
 		return
 	if(arm.bodypart_disabled)
 		return
-	if(prob(hardness))
-		playsound(src, 'sound/effects/meteorimpact.ogg', 100, TRUE)
-		user.say(pick(";RAAAAAAAARGH!", ";HNNNNNNNNNGGGGGGH!", ";GWAAAAAAAARRRHHH!", "NNNNNNNNGGGGGGGGHH!", ";AAAAAAARRRGH!" ), forced = "hulk")
-		hulk_recoil(arm, user)
-		dismantle_wall(1)
-
-	else
-		playsound(src, 'sound/effects/bang.ogg', 50, TRUE)
-		add_dent(WALL_DENT_HIT)
+	user.say(pick(";RAAAAAAAARGH!", ";HNNNNNNNNNGGGGGGH!", ";GWAAAAAAAARRRHHH!", "NNNNNNNNGGGGGGGGHH!", ";AAAAAAARRRGH!" ), forced = "hulk")
+	playsound(src, 'sound/effects/bang.ogg', 50, TRUE)
+	take_damage(max_integrity * hardness/100)
+	if(wall_integrity <= 0)
 		user.visible_message("<span class='danger'>[user] smashes \the [src]!</span>", \
-					"<span class='danger'>You smash \the [src]!</span>", \
-					"<span class='hear'>You hear a booming smash!</span>")
+		"<span class='danger'>You smash \the [src]!</span>", \
+		"<span class='hear'>You hear a booming smash!</span>")
+		hulk_recoil(arm, user)
+
 	return TRUE
 
 /**
