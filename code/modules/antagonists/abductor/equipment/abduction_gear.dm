@@ -810,32 +810,30 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	framestackamount = 1
 	icon = 'icons/obj/abductor.dmi'
 	icon_state = "bed"
-	can_buckle = 1
+	can_buckle = TRUE
 	/// Amount to inject per second
 	var/inject_am = 0.5
 
 	var/static/list/injected_reagents = list(/datum/reagent/medicine/cordiolis_hepatico)
 
-/obj/structure/table/optable/abductor/Initialize(mapload)
+/obj/structure/table/optable/abductor/buckle_mob(mob/living/M, force = FALSE, check_loc = FALSE)
 	. = ..()
-	var/static/list/loc_connections = list(
-		COMSIG_ATOM_ENTERED = .proc/on_entered,
-	)
-	AddElement(/datum/element/connect_loc, loc_connections)
-
-/obj/structure/table/optable/abductor/proc/on_entered(datum/source, atom/movable/AM)
-	SIGNAL_HANDLER
-	if(iscarbon(AM))
-		START_PROCESSING(SSobj, src)
-		to_chat(AM, span_danger("You feel a series of tiny pricks!"))
+	if(.)
+		if(iscarbon(M))
+			START_PROCESSING(SSobj, src)
+			to_chat(M, span_danger("You feel a series of tiny pricks!"))
 
 /obj/structure/table/optable/abductor/process(delta_time)
 	. = PROCESS_KILL
-	for(var/mob/living/carbon/C in get_turf(src))
+	for(var/mob/living/carbon/C in buckled_mobs)
 		. = TRUE
 		for(var/chemical in injected_reagents)
 			if(C.reagents.get_reagent_amount(chemical) < inject_am * delta_time)
 				C.reagents.add_reagent(chemical, inject_am * delta_time)
+		if(C.IsSleeping())
+			visible_message(span_warning("[src] injects [C] with a series of spindly needles, waking them."))
+			C.SetSleeping(0 SECONDS)
+		C.SetParalyzed(5 SECONDS)
 
 /obj/structure/table/optable/abductor/Destroy()
 	STOP_PROCESSING(SSobj, src)
