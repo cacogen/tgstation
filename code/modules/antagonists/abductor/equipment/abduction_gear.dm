@@ -810,30 +810,74 @@ Congratulations! You are now trained for invasive xenobiology research!"}
 	framestackamount = 1
 	icon = 'icons/obj/abductor.dmi'
 	icon_state = "bed"
-	can_buckle = TRUE
+	buckle_lying = TRUE
+	buckle_requires_restraints = FALSE
+	max_buckled_mobs = INFINITY
 	/// Amount to inject per second
 	var/inject_am = 0.5
+	/// Time to unbuckle
+	var/unbuckle_time = 2 MINUTES
+	///These mobs avoid being trapped by the table again for 10 seconds
+	var/list/recently_freed_mobs = list()
 
 	var/static/list/injected_reagents = list(/datum/reagent/medicine/cordiolis_hepatico)
 
-/obj/structure/table/optable/abductor/buckle_mob(mob/living/M, force = FALSE, check_loc = FALSE)
+/obj/structure/table/optable/abductor/Initialize(mapload)
 	. = ..()
-	if(.)
-		if(iscarbon(M))
-			START_PROCESSING(SSobj, src)
-			to_chat(M, span_danger("You feel a series of tiny pricks!"))
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = .proc/on_entered,
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
+/obj/structure/table/optable/abductor/proc/on_entered(datum/source, atom/movable/AM)
+	SIGNAL_HANDLER
+	if(iscarbon(AM))
+		START_PROCESSING(SSobj, src)
+		to_chat(AM, span_danger("You feel a series of tiny pricks!"))
+
+/obj/structure/table/optable/abductor/user_unbuckle_mob(mob/living/buckled_mob, mob/living/user)
+	if(buckled_mob != user || isabductor(buckled_mob))
+		. = ..()
+	else
+		buckled_mob.visible_message(span_warning("[buckled_mob] struggles to lift themselves off of [src]!"),\
+		span_notice("You struggle to lift yourself off of [src]... (Stay still for [unbuckle_time/600] minutes.)"),\
+		span_hear("You hear struggling..."))
+		if(!do_after(buckled_mob, unbuckle_time, src))
+			if(buckled_mob?.buckled)
+				to_chat(buckled_mob, span_warning("You fail to unbuckle yourself!"))
+			return
+		if(!buckled_mob.buckled)
+			return
+		buckled_mob.visible_message(span_warning("[buckled_mob] lifts themselves off of [src]!"),\
+			span_notice("You lift yourself off of [src]!"),\
+			span_hear("The struggling stops."))
+
+		unbuckle_mob(buckled_mob)
+		add_fingerprint(user)
+	recently_freed_mobs[buckled_mob] += world.time + 10 SECONDS
 
 /obj/structure/table/optable/abductor/process(delta_time)
 	. = PROCESS_KILL
-	for(var/mob/living/carbon/C in buckled_mobs)
+	var/cut_list = TRUE
+	for(var/mob/living/carbon/C in get_turf(src))
 		. = TRUE
+		cut_list = FALSE
+		if(C in buckled_mobs)
+			continue
+		if(C in recently_freed_mobs)
+			if(world.time < recently_freed_mobs[C])
+				continue
+			else
+				recently_freed_mobs -= C
+		buckle_mob(C)
+	for(var/mob/living/carbon/C in buckled_mobs)
 		for(var/chemical in injected_reagents)
 			if(C.reagents.get_reagent_amount(chemical) < inject_am * delta_time)
 				C.reagents.add_reagent(chemical, inject_am * delta_time)
 		if(C.IsSleeping())
-			visible_message(span_warning("[src] injects [C] with a series of spindly needles, waking them."))
 			C.SetSleeping(0 SECONDS)
-		C.SetParalyzed(5 SECONDS)
+	if(cut_list)
+		recently_freed_mobs.Cut()
 
 /obj/structure/table/optable/abductor/Destroy()
 	STOP_PROCESSING(SSobj, src)
