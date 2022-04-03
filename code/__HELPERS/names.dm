@@ -66,7 +66,7 @@ GLOBAL_VAR(command_name)
 		new_station_name = name + " "
 		name = ""
 
-	if(prob(1))
+	if(prob(0.1))
 		random = 999999999 //ridiculously long name in written numbers
 
 	// Prefix
