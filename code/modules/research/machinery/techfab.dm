@@ -32,3 +32,8 @@
 	console_link = FALSE
 	production_animation = "protolathe_n"
 	allowed_buildtypes = PROTOLATHE | IMPRINTER
+
+/obj/machinery/rnd/production/techfab/Initialize(mapload)
+	. = ..()
+	var/datum/component/remote_materials/remote_materials = GetComponent(/datum/component/remote_materials)
+	remote_materials.mat_container_flags &= ~MATCONTAINER_NO_INSERT

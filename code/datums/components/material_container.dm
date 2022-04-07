@@ -22,6 +22,8 @@
 	var/list/allowed_item_typecache
 	/// The last main material that was inserted into this container
 	var/last_inserted_id
+	/// The last materials added to this container
+	var/list/last_inserted_list = list()
 	/// Whether or not this material container allows specific amounts from sheets to be inserted
 	var/precise_insertion = FALSE
 	/// A callback for checking wheter we can insert a material into this container
@@ -167,7 +169,7 @@
 		to_chat(user, span_notice("You insert a material total of [inserted] into [parent]."))
 		qdel(held_item)
 		if(after_insert)
-			after_insert.Invoke(held_item, last_inserted_id, inserted)
+			after_insert.Invoke(held_item, last_inserted_id, inserted, last_inserted_list, user)
 	else if(held_item == active_held)
 		user.put_in_active_hand(held_item)
 
@@ -197,10 +199,12 @@
 	var/primary_mat
 	var/max_mat_value = 0
 	var/list/item_materials = source.get_material_composition(breakdown_flags)
+	last_inserted_list.Cut()
 	for(var/MAT in item_materials)
 		if(!can_hold_material(MAT))
 			continue
 		materials[MAT] += item_materials[MAT] * multiplier
+		last_inserted_list[MAT] += item_materials[MAT] * multiplier
 		total_amount += item_materials[MAT] * multiplier
 		if(item_materials[MAT] > max_mat_value)
 			max_mat_value = item_materials[MAT]

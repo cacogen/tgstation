@@ -1498,12 +1498,14 @@
 	return
 
 ///Check if the multitool has an item in it's data buffer
-/atom/proc/multitool_check_buffer(user, obj/item/multitool, silent = FALSE)
-	if(!istype(multitool, /obj/item/multitool))
+/atom/proc/multitool_check_buffer(user, obj/item/multitool/multitool, silent = FALSE)
+	if(!istype(multitool))
 		if(user && !silent)
 			to_chat(user, span_warning("[multitool] has no data buffer!"))
 		return FALSE
-	return TRUE
+	else if(multitool.buffer)
+		return TRUE
+	return FALSE
 
 /// Called on an object when a tool with screwdriver capabilities is used to left click an object
 /atom/proc/screwdriver_act(mob/living/user, obj/item/tool)

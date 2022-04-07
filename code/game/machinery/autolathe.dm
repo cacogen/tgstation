@@ -299,7 +299,7 @@
 
 	return SECONDARY_ATTACK_CALL_NORMAL
 
-/obj/machinery/autolathe/proc/AfterMaterialInsert(obj/item/item_inserted, id_inserted, amount_inserted)
+/obj/machinery/autolathe/proc/AfterMaterialInsert(obj/item/item_inserted, id_inserted, amount_inserted, last_inserted_list, mob/living/user)
 	if(istype(item_inserted, /obj/item/stack/ore/bluespace_crystal))
 		use_power(MINERAL_MATERIAL_AMOUNT / 10)
 	else if(item_inserted.has_material_type(/datum/material/glass))

@@ -27,7 +27,7 @@
 	matching_designs = list()
 	cached_designs = list()
 	update_designs()
-	materials = AddComponent(/datum/component/remote_materials, "lathe", mapload, mat_container_flags=BREAKDOWN_FLAGS_LATHE)
+	materials = AddComponent(/datum/component/remote_materials, "lathe", mapload, mat_container_flags=BREAKDOWN_FLAGS_LATHE|MATCONTAINER_NO_INSERT)
 	RefreshParts()
 	update_icon(UPDATE_OVERLAYS)
 

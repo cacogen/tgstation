@@ -29,6 +29,22 @@ handles linking back and forth.
 	RegisterSignal(parent, COMSIG_PARENT_ATTACKBY, .proc/OnAttackBy)
 	RegisterSignal(parent, COMSIG_ATOM_TOOL_ACT(TOOL_MULTITOOL), .proc/OnMultitool)
 
+	var/static/list/allowed_mats = list(
+		/datum/material/iron,
+		/datum/material/glass,
+		/datum/material/silver,
+		/datum/material/gold,
+		/datum/material/diamond,
+		/datum/material/plasma,
+		/datum/material/uranium,
+		/datum/material/bananium,
+		/datum/material/titanium,
+		/datum/material/bluespace,
+		/datum/material/plastic,
+		)
+
+	parent.AddComponent(/datum/component/material_container, allowed_mats, local_size, mat_container_flags)
+
 	var/turf/T = get_turf(parent)
 	if (force_connect || (mapload && is_station_level(T.z)))
 		addtimer(CALLBACK(src, .proc/LateInitialize))
@@ -58,21 +74,7 @@ handles linking back and forth.
 /datum/component/remote_materials/proc/_MakeLocal()
 	silo = null
 
-	var/static/list/allowed_mats = list(
-		/datum/material/iron,
-		/datum/material/glass,
-		/datum/material/silver,
-		/datum/material/gold,
-		/datum/material/diamond,
-		/datum/material/plasma,
-		/datum/material/uranium,
-		/datum/material/bananium,
-		/datum/material/titanium,
-		/datum/material/bluespace,
-		/datum/material/plastic,
-		)
-
-	mat_container = parent.AddComponent(/datum/component/material_container, allowed_mats, local_size, mat_container_flags, allowed_items=/obj/item/stack)
+	mat_container = parent.GetComponent(/datum/component/material_container)
 
 /datum/component/remote_materials/proc/set_local_size(size)
 	local_size = size
@@ -91,9 +93,27 @@ handles linking back and forth.
 /datum/component/remote_materials/proc/OnAttackBy(datum/source, obj/item/I, mob/user)
 	SIGNAL_HANDLER
 
-	if (silo && istype(I, /obj/item/stack))
-		if (silo.remote_attackby(parent, user, I, mat_container_flags))
-			return COMPONENT_NO_AFTERATTACK
+	var/datum/component/material_container/parent_container = parent.GetComponent(/datum/component/material_container)
+
+	if(!parent_container)
+		return
+
+	if(!(mat_container_flags & MATCONTAINER_NO_INSERT))
+		parent_container.on_attackby(source, I, user)
+
+	if(!silo)
+		return
+
+	var/datum/component/material_container/silo_container = silo.GetComponent(/datum/component/material_container)
+
+	if(!silo_container)
+		return
+
+	for(var/MAT in parent_container.materials)
+		var/amount = parent_container.materials[MAT]
+		parent_container.transer_amt_to(silo_container, amount, MAT)
+
+	return COMPONENT_NO_AFTERATTACK
 
 /datum/component/remote_materials/proc/OnMultitool(datum/source, mob/user, obj/item/I)
 	SIGNAL_HANDLER
@@ -110,7 +130,6 @@ handles linking back and forth.
 			silo.updateUsrDialog()
 		else if (mat_container)
 			mat_container.retrieve_all()
-			qdel(mat_container)
 		silo = M.buffer
 		silo.connected += src
 		silo.updateUsrDialog()
@@ -138,10 +157,10 @@ handles linking back and forth.
 		return 0
 
 	if (!mat_container)
-		movable_parent.say("No access to material storage, please contact the quartermaster.")
+		movable_parent.say("No access to material storage, please contact the Quartermaster.")
 		return 0
 	if (on_hold())
-		movable_parent.say("Mineral access is on hold, please contact the quartermaster.")
+		movable_parent.say("Mineral access is on hold, please contact the Quartermaster.")
 		return 0
 	var/count = mat_container.retrieve_sheets(eject_amount, material_ref, movable_parent.drop_location())
 	var/list/matlist = list()

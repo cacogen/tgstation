@@ -27,10 +27,12 @@
 	return ..()
 
 /obj/machinery/rnd/production/protolathe/Initialize(mapload)
+	. = ..()
 	if(!mapload)
 		log_game("Protolathe of type [type] constructed by [key_name(usr)] at [get_area_name(src, TRUE)]")
 
-	return ..()
+	var/datum/component/remote_materials/remote_materials = GetComponent(/datum/component/remote_materials)
+	remote_materials.mat_container_flags &= ~MATCONTAINER_NO_INSERT
 
 /// Special subtype protolathe for offstation use. Has a more limited available design selection.
 /obj/machinery/rnd/production/protolathe/offstation

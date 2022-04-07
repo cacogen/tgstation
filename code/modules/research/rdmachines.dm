@@ -1,7 +1,7 @@
+#define MAX_MATERIAL_REWARD 100
+#define CREDIT_COOLDOWN_LENGTH (5 SECONDS)
 
 //All devices that link into the R&D console fall into thise type for easy identification and some shared procs.
-
-
 /obj/machinery/rnd
 	name = "R&D Device"
 	icon = 'icons/obj/machines/research.dmi'
@@ -14,14 +14,27 @@
 	var/obj/item/loaded_item = null //the item loaded inside the machine (currently only used by experimentor and destructive analyzer)
 	/// Ref to global science techweb.
 	var/datum/techweb/stored_research
+	var/static/datum/bank_account/bank_account
+	var/static/credit_generation_cooldown
 
 /obj/machinery/rnd/proc/reset_busy()
 	busy = FALSE
 
 /obj/machinery/rnd/Initialize(mapload)
-	. = ..()
+	..()
 	stored_research = SSresearch.science_tech
 	wires = new /datum/wires/rnd(src)
+	if(isnull(bank_account))
+		bank_account = new
+		bank_account.account_balance = MAX_MATERIAL_REWARD
+
+	return INITIALIZE_HINT_LATELOAD
+
+/obj/machinery/rnd/LateInitialize()
+	. = ..()
+
+	var/datum/component/material_container/material_container = GetComponent(/datum/component/material_container)
+	material_container?.after_insert = CALLBACK(src, .proc/PayAfterMaterialInsert)
 
 /obj/machinery/rnd/Destroy()
 	stored_research = null
@@ -40,7 +53,7 @@
 		return FALSE
 
 /obj/machinery/rnd/attackby(obj/item/O, mob/user, params)
-	if(is_refillable() && O.is_drainable())
+	if(is_refillable() && O.is_drainable() && O.reagents.total_volume)
 		return FALSE //inserting reagents into the machine
 	if(Insert_Item(O, user))
 		return TRUE
@@ -122,3 +135,28 @@
 		use_power(min(1000, (amount_inserted / 100)))
 	add_overlay("protolathe_[stack_name]")
 	addtimer(CALLBACK(src, /atom/proc/cut_overlay, "protolathe_[stack_name]"), 10)
+
+/obj/machinery/rnd/process()
+	if(bank_account.account_balance >= MAX_MATERIAL_REWARD || credit_generation_cooldown >= world.time)
+		return
+	credit_generation_cooldown = world.time + CREDIT_COOLDOWN_LENGTH
+	bank_account.account_balance = min(MAX_MATERIAL_REWARD, bank_account.account_balance + 5)
+	to_chat(world, "[src] account_balance is now [bank_account.account_balance].")
+
+/obj/machinery/rnd/proc/PayAfterMaterialInsert(item_inserted, id_inserted, amount_inserted, last_inserted_list, mob/living/user)
+	if(!length(last_inserted_list) || isstack(item_inserted))
+		return
+	var/obj/item/card/id/card = user.get_idcard(TRUE)
+	if (!card || !card.registered_account)
+		return
+	var/reward = 0
+	for(var/datum/material/material in last_inserted_list)
+		reward += last_inserted_list[material] * material.value_per_unit
+	reward = min(bank_account.account_balance, round(reward))
+	if(!reward)
+		return
+	card.registered_account.transfer_money(bank_account, reward)
+	card.registered_account.bank_card_talk("[reward] credit\s added to your account for recycled materials.")
+
+#undef MAX_MATERIAL_REWARD
+#undef CREDIT_COOLDOWN_LENGTH
