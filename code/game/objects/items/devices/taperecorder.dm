@@ -91,7 +91,7 @@
 		if(!user.transferItemToLoc(I,src))
 			return
 		mytape = I
-		balloon_alert(user, "inserted [mytape]")
+		balloon_alert(user, "tape inserted")
 		playsound(src, 'sound/items/taperecorder/taperecorder_close.ogg', 50, FALSE)
 		update_appearance()
 
@@ -104,7 +104,7 @@
 		balloon_alert(user, "stop the tape first!")
 		return
 	playsound(src, 'sound/items/taperecorder/taperecorder_open.ogg', 50, FALSE)
-	balloon_alert(user, "ejected [mytape]")
+	balloon_alert(user, "ejected tape")
 	stop()
 	user.put_in_hands(mytape)
 	mytape = null
@@ -241,7 +241,7 @@
 		balloon_alert(usr, "already playing!")
 		return
 	if(mytape.storedinfo?.len <= 0)
-		balloon_alert(usr, "[mytape] is empty!")
+		balloon_alert(usr, "tape is empty!")
 		return
 
 	playing = TRUE
