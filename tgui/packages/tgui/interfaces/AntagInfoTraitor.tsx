@@ -136,9 +136,11 @@ const UplinkSection = (props, context) => {
             <Stack.Item bold>
               {uplink_intro}
               <br />
-              <span style={goalstyle}>Code: {code}</span>
+              {code && <span style={goalstyle}>Code: {code}</span>}
               <br />
-              <span style={badstyle}>Failsafe: {failsafe_code}</span>
+              {failsafe_code && (
+                <span style={badstyle}>Failsafe: {failsafe_code}</span>
+              )}
             </Stack.Item>
             <Stack.Divider />
             <Stack.Item mt="1%">
@@ -159,15 +161,15 @@ const CodewordsSection = (props, context) => {
       <Stack fill>
         {(!has_codewords && (
           <BlockQuote>
-            You have not been supplied the Syndicate codewords. You will have to
-            use alternative methods to find potential allies. Proceed with
-            caution, however, as everyone is a potential foe.
+            You have not been supplied with codewords. You will have to use
+            alternative methods to find potential allies. Proceed with caution,
+            however, as everyone is a potential foe.
           </BlockQuote>
         )) || (
           <>
             <Stack.Item grow basis={0}>
               <BlockQuote>
-                The Syndicate have provided you with the following codewords to
+                Your employer provided you with the following codewords to
                 identify fellow agents. Use the codewords during regular
                 conversation to identify other agents. Proceed with caution,
                 however, as everyone is a potential foe.

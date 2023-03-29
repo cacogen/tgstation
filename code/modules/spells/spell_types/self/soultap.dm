@@ -36,7 +36,7 @@
 	return TRUE
 
 /datum/action/cooldown/spell/tap/is_valid_target(atom/cast_on)
-	return isliving(cast_on) && !HAS_TRAIT(owner, TRAIT_NO_SOUL)
+	return isliving(cast_on) && !HAS_TRAIT(cast_on, TRAIT_NO_SOUL)
 
 /datum/action/cooldown/spell/tap/cast(mob/living/cast_on)
 	. = ..()
@@ -52,6 +52,7 @@
 		ADD_TRAIT(cast_on, TRAIT_NO_SOUL, MAGIC_TRAIT)
 
 		cast_on.visible_message(span_danger("[cast_on] suddenly dies!"), ignored_mobs = cast_on)
+		cast_on.investigate_log("has been killed by soul tap.", INVESTIGATE_DEATHS)
 		cast_on.death()
 
 	// If the next tap will kill us, give us a heads-up
