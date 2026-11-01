@@ -52,8 +52,9 @@
 
 /obj/machinery/portable_atmospherics/scrubber/click_alt_secondary(mob/user)
 	if(holding)
-		replace_tank(usr, FALSE)
-		. = TRUE
+		replace_tank(user, FALSE)
+		return CLICK_ACTION_SUCCESS
+	return CLICK_ACTION_BLOCKING
 
 /obj/machinery/portable_atmospherics/scrubber/on_deconstruction(disassembled)
 	var/turf/local_turf = get_turf(src)
