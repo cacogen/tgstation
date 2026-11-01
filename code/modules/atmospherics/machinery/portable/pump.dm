@@ -34,9 +34,9 @@
 
 /obj/machinery/portable_atmospherics/pump/click_alt_secondary(mob/user)
 	if(holding)
-		replace_tank(usr, FALSE)
-		. = TRUE
-
+		replace_tank(user, FALSE)
+		return CLICK_ACTION_SUCCESS
+	return CLICK_ACTION_BLOCKING
 /obj/machinery/portable_atmospherics/pump/click_ctrl_shift(mob/user)
 	if(target_pressure == MAX_OUTPUT_PRESSURE)
 		return CLICK_ACTION_BLOCKING
