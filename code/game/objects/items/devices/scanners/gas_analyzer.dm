@@ -54,7 +54,7 @@
 	if(held_item != src)
 		return NONE
 
-	context[SCREENTIP_CONTEXT_ALT_RMB] = "Scan for nearest air alarm in area"
+	context[SCREENTIP_CONTEXT_ALT_RMB] = "Point to nearest air alarm in area"
 	context[SCREENTIP_CONTEXT_RMB] = "Open the gas reference"
 	context[SCREENTIP_CONTEXT_ALT_LMB] = "Activate the barometer function"
 	return CONTEXTUAL_SCREENTIP_SET
@@ -74,48 +74,35 @@
 
 	COOLDOWN_START(src, next_air_alarm_scan, 2 SECONDS)
 
-	var/target
+	var/obj/machinery/airalarm/target
 	var/area/local_area = get_area(src)
+
 	for(var/obj/machinery/airalarm/air_alarm in GLOB.air_alarms)
 		if(air_alarm.my_area != local_area)
 			continue
+
 		if(!target)
 			target = air_alarm
 			continue
+
 		if(get_dist_euclidean(air_alarm, user) > get_dist_euclidean(target, user))
 			continue
+
 		target = air_alarm
 
 	if(!target)
 		user.balloon_alert(user, "no air alarm in this area!")
 		return
 
-	var/dist = get_dist(src, target)
-	var/angle = get_angle(user, target)
-	var/arrow_color
+	var/datum/component/pinpointer/pinpointer = GetComponent(/datum/component/pinpointer)
 
-	switch(dist)
-		if (0)
-			user.balloon_alert(user, "found air alarm!")
-			return
-		if(1 to 5)
-			arrow_color = COLOR_GREEN
-		if(6 to 10)
-			arrow_color = COLOR_YELLOW
-		if(11 to 15)
-			arrow_color = COLOR_ORANGE
-		else
-			arrow_color = COLOR_RED
+	if(!pinpointer)
+		pinpointer = AddComponent(/datum/component/pinpointer)
 
+	var/distance = pinpointer.point_to(user, target)
 
-	var/datum/hud/user_hud = user.hud_used
-	if(!user_hud)
-		return
-
-	var/atom/movable/screen/multitool_arrow/arrow = user_hud.add_screen_object(/atom/movable/screen/multitool_arrow, HUD_MULTITOOL_ARROW, HUD_GROUP_INFO, update_screen = TRUE)
-	arrow.color = arrow_color
-	arrow.transform = matrix(angle, MATRIX_ROTATE)
-	QDEL_IN(arrow, 1.5 SECONDS)
+	if(!distance)
+		user.balloon_alert(user, "found air alarm!")
 
 /obj/item/analyzer/grind_results()
 	return list(/datum/reagent/mercury = 5, /datum/reagent/iron = 5, /datum/reagent/silicon = 5)

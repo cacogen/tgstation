@@ -73,7 +73,7 @@
 	. = ..()
 
 	if(held_item == src)
-		context[SCREENTIP_CONTEXT_LMB] = "Scan for APC"
+		context[SCREENTIP_CONTEXT_LMB] = "Point to APC"
 		return CONTEXTUAL_SCREENTIP_SET
 
 /obj/item/multitool/proc/scan_apc(mob/user)
@@ -84,48 +84,20 @@
 
 	var/area/local_area = get_area(src)
 	var/obj/machinery/power/apc/power_controller = local_area.apc
+
 	if(!power_controller)
 		user.balloon_alert(user, "couldn't find apc!")
 		return
 
-	var/dist = get_dist(src, power_controller)
-	var/angle = get_angle(user, power_controller)
-	var/arrow_color
+	var/datum/component/pinpointer/pinpointer = GetComponent(/datum/component/pinpointer)
 
-	switch(dist)
-		if (0)
-			user.balloon_alert(user, "found apc!")
-			return
-		if(1 to 5)
-			arrow_color = COLOR_GREEN
-		if(6 to 10)
-			arrow_color = COLOR_YELLOW
-		if(11 to 15)
-			arrow_color = COLOR_ORANGE
-		else
-			arrow_color = COLOR_RED
+	if(!pinpointer)
+		pinpointer = AddComponent(/datum/component/pinpointer)
 
-	var/datum/hud/user_hud = user.hud_used
-	if(!user_hud)
-		return
+	var/distance = pinpointer.point_to(user, power_controller)
 
-	var/atom/movable/screen/multitool_arrow/arrow = user_hud.add_screen_object(/atom/movable/screen/multitool_arrow, HUD_MULTITOOL_ARROW, HUD_GROUP_INFO, update_screen = TRUE)
-	arrow.color = arrow_color
-	arrow.transform = matrix(angle, MATRIX_ROTATE)
-	QDEL_IN(arrow, 1.5 SECONDS)
-
-/atom/movable/screen/multitool_arrow
-	icon = 'icons/effects/96x96.dmi'
-	icon_state = "multitool_arrow"
-	pixel_x = -32
-	pixel_y = -32
-	screen_loc = around_player
-
-/atom/movable/screen/multitool_arrow/Destroy()
-	var/datum/hud/our_hud = hud
-	. = ..()
-	if (!QDELETED(our_hud))
-		INVOKE_ASYNC(our_hud, TYPE_PROC_REF(/datum/hud, show_hud), our_hud.hud_version)
+	if(!distance)
+		user.balloon_alert(user, "found apc!")
 
 /obj/item/multitool/suicide_act(mob/living/user)
 	user.visible_message(span_suicide("[user] puts the [src] to [user.p_their()] chest. It looks like [user.p_theyre()] trying to pulse [user.p_their()] heart off!"))
